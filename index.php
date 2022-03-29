@@ -2,6 +2,11 @@
 require("./config.php");
 require("./integracao.php");
 
-$LOJAS = IntegracaoPagcompleto::get_lojas_com_pagcompleto();
-$PEDIDOS = IntegracaoPagcompleto::get_pedidos($LOJAS);
-IntegracaoPagcompleto::verifica_situacao_api($PEDIDOS);
+try {
+  $LOJAS = IntegracaoPagcompleto::get_lojas_com_pagcompleto();
+  $PEDIDOS = IntegracaoPagcompleto::get_pedidos($LOJAS);
+  IntegracaoPagcompleto::verifica_situacao_api($PEDIDOS);
+  echo "Tudo certo!";
+} catch (Throwable $th) {
+  echo "Ocorreu um erro!";
+}

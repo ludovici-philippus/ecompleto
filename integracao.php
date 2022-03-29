@@ -57,9 +57,7 @@ class IntegracaoPagcompleto
       );
 
       self::insert_retorno($RETORNO, $EXTERNAL_ORDER_ID);
-      self::cancelar_pedidos_recusados($RETORNO, $EXTERNAL_ORDER_ID);
-
-      echo "<br>";
+      self::atualizar_pedidos($RETORNO, $EXTERNAL_ORDER_ID);
     }
   }
 
@@ -130,12 +128,6 @@ class IntegracaoPagcompleto
     return $data_final;
   }
 
-  private static function insert_retorno($retorno, $id_pedido)
-  {
-    $SQL = Db::connect()->prepare("UPDATE pedidos_pagamentos SET retorno_intermediador=? WHERE id_pedido=?");
-    $SQL->execute(array($retorno, $id_pedido));
-  }
-
   private static function requisicao_api($EXTERNAL_ORDER_ID, $AMOUNT, $CARD_NUMBER, $CARD_CVV, $CARD_EXPIRATION_DATE, $CARD_HOLDER_NAME, $EXTERNAL_ID, $NAME, $TYPE_CUSTOMER, $EMAIL, $TYPE_DOCUMENTS, $NUMBER, $BIRTHDAY)
   {
     $API_PATH = 'https://api11.ecompleto.com.br/exams/processTransaction';
@@ -166,13 +158,21 @@ class IntegracaoPagcompleto
     return $response;
   }
 
-  private static function cancelar_pedidos_recusados($retorno, $id_pedido)
+  private static function insert_retorno($retorno, $id_pedido)
+  {
+    $SQL = Db::connect()->prepare("UPDATE pedidos_pagamentos SET retorno_intermediador=? WHERE id_pedido=?");
+    $SQL->execute(array($retorno, $id_pedido));
+  }
+
+  private static function atualizar_pedidos($retorno, $id_pedido)
   {
     $retorno = json_decode($retorno);
     $retorno_code = $retorno->Transaction_code;
     if ($retorno_code == '04') {
-      echo "Foi";
       $SQL = Db::connect()->prepare("UPDATE pedidos SET id_situacao=3 WHERE id=?");
+      $SQL->execute(array($id_pedido));
+    } else if ($retorno_code == '00') {
+      $SQL = Db::connect()->prepare("UPDATE pedidos SET id_situacao=2 WHERE id=?");
       $SQL->execute(array($id_pedido));
     }
   }
