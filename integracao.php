@@ -27,8 +27,9 @@ class IntegracaoPagcompleto
       $AMOUNT = self::get_pedido_info($EXTERNAL_ORDER_ID)['valor_total'];
       $CARD_NUMBER = $value['num_cartao'];
       $CARD_CVV = $value['codigo_verificacao'];
-      $CARD_EXPIRATION_DATE = $value['vencimento'];
+      $CARD_EXPIRATION_DATE = self::convert_card_data($value['vencimento']);
       $CARD_HOLDER_NAME = $value['nome_portador'];
+
 
       $EXTERNAL_ID = self::get_pedido_info($EXTERNAL_ORDER_ID)['id_cliente'];
       $CLIENTE_INFO = self::get_cliente_info($EXTERNAL_ID);
@@ -39,29 +40,45 @@ class IntegracaoPagcompleto
       $TYPE_DOCUMENTS = $TYPE_CUSTOMER == "individual" ? "cpf" : "cnpj";
       $NUMBER = $CLIENTE_INFO['cpf_cnpj'];
       $BIRTHDAY = $CLIENTE_INFO['data_nasc'];
-    }
 
-    /*
-    const BODY = {
-      "external_order_id": 98302,
-      "amount": 250.74,
-      "card_number": "5236387041984690",
-      "card_cvv": "319",
-      "card_expiration_date": "0822",
-      "card_holder_name": "Elisa Adriana Barbosa",
-      "customer": {
-        "external_id": "8796",
-        "name": "Emanuelly Alice Alessandra de Paula",
-        "type": "individual",
-        "email": "emanuellyalice@ecompleto.com.br",
-        "documents": [{
-          "type": "cpf",
-          "number": "96446953722"
-        }],
-        "birthday": "1988-01-18"
+
+      $API_PATH = 'https://api11.ecompleto.com.br/exams/processTransaction';
+      $API_KEY = 'cb2eceb3338a2d3e845c4a14cb4f8887';
+
+      echo "<script>";
+      if ($key == 0) {
+        echo "const HEADERS = new Headers({'Authorization': '$API_KEY'});";
       }
+      echo "
+      const BODY = {
+        'external_order_id': $EXTERNAL_ORDER_ID,
+        'amount': $AMOUNT,
+        'card_number': '$CARD_NUMBER',
+        'card_cvv': '$CARD_CVV',
+        'card_expiration_date': '$CARD_EXPIRATION_DATE',
+        'card_holder_name': '$CARD_HOLDER_NAME',
+        'customer': {
+          'external_id': $EXTERNAL_ID,
+          'name': '$NAME',
+          'type': '$TYPE_CUSTOMER',
+          'email': '$EMAIL',
+          'documents': [{
+            'type': '$TYPE_DOCUMENTS',
+            'number': $NUMBER
+          }],
+         'birthday': '$BIRTHDAY'
+        }
+      }
+
+      console.log(JSON.stringify(BODY));
+
+      fetch('$API_PATH', {
+        method: 'POST',
+        headers: HEADERS,
+        body: JSON.stringify(BODY)
+      }).then(response => console.log(response));
+      </script>";
     }
-  */
   }
 
   private static function get_pedidos_aguardando($lojas)
@@ -120,5 +137,14 @@ class IntegracaoPagcompleto
     $SQL->execute(array($cliente_id));
     $CLIENTE_INFO = $SQL->fetch();
     return $CLIENTE_INFO;
+  }
+
+  private static function convert_card_data($data)
+  {
+    $mes = explode("-", $data)[1];
+    $ano = explode("-", $data)[0];
+    $ano = substr($ano, 2);
+    $data_final = $mes . $ano;
+    return $data_final;
   }
 }
