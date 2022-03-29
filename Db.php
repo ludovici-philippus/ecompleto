@@ -1,5 +1,5 @@
 <?php 
-	class SQL{
+	class Db{
 		public static $pdo;
 		public static function connect(){
 			if(self::$pdo == null){
@@ -8,4 +8,3 @@
 			return self::$pdo;
 		}
 	}
-?>
