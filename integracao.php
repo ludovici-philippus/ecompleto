@@ -17,7 +17,7 @@ class IntegracaoPagcompleto
   {
     $pedidos_aguardando = self::get_pedidos_aguardando($lojas);
     $pedidos_cartao = self::get_pedidos_cartao_credito($pedidos_aguardando);
-    self::verifica_situacao_api($pedidos_cartao);
+    return $pedidos_cartao;
   }
 
   public static function verifica_situacao_api($pedidos)
@@ -30,7 +30,6 @@ class IntegracaoPagcompleto
       $CARD_EXPIRATION_DATE = self::convert_card_data($value['vencimento']);
       $CARD_HOLDER_NAME = $value['nome_portador'];
 
-
       $EXTERNAL_ID = self::get_pedido_info($EXTERNAL_ORDER_ID)['id_cliente'];
       $CLIENTE_INFO = self::get_cliente_info($EXTERNAL_ID);
 
@@ -41,56 +40,26 @@ class IntegracaoPagcompleto
       $NUMBER = $CLIENTE_INFO['cpf_cnpj'];
       $BIRTHDAY = $CLIENTE_INFO['data_nasc'];
 
+      $RETORNO = self::requisicao_api(
+        $EXTERNAL_ORDER_ID,
+        $AMOUNT,
+        $CARD_NUMBER,
+        $CARD_CVV,
+        $CARD_EXPIRATION_DATE,
+        $CARD_HOLDER_NAME,
+        $EXTERNAL_ID,
+        $NAME,
+        $TYPE_CUSTOMER,
+        $EMAIL,
+        $TYPE_DOCUMENTS,
+        $NUMBER,
+        $BIRTHDAY
+      );
 
-      $API_PATH = 'https://api11.ecompleto.com.br/exams/processTransaction';
-      $API_KEY = 'cb2eceb3338a2d3e845c4a14cb4f8887';
+      self::insert_retorno($RETORNO, $EXTERNAL_ORDER_ID);
+      self::cancelar_pedidos_recusados($RETORNO, $EXTERNAL_ORDER_ID);
 
-      echo "<script>
-      var HEADERS = new Headers({'Authorization': '$API_KEY'});;
-      var BODY = {
-        'external_order_id': $EXTERNAL_ORDER_ID,
-        'amount': $AMOUNT,
-        'card_number': '$CARD_NUMBER',
-        'card_cvv': '$CARD_CVV',
-        'card_expiration_date': '$CARD_EXPIRATION_DATE',
-        'card_holder_name': '$CARD_HOLDER_NAME',
-        'customer': {
-          'external_id': $EXTERNAL_ID,
-          'name': '$NAME',
-          'type': '$TYPE_CUSTOMER',
-          'email': '$EMAIL',
-          'documents': [{
-            'type': '$TYPE_DOCUMENTS',
-            'number': $NUMBER
-          }],
-         'birthday': '$BIRTHDAY'
-        }
-      }
-
-      console.log(JSON.stringify(BODY));
-      /*
-      var RESPOSTA = fetch('$API_PATH', {
-        method: 'POST',
-        headers: HEADERS,
-        body: JSON.stringify(BODY)
-      }).then(response => response);
-      */
-
-      var RESPOSTA = {};
-      RESPOSTA.Error = false;
-      RESPOSTA.Transaction_code = 04;
-      RESPOSTA.Message = 'Pagamento Recusado. Cartão sem crédito disponível.'
-      
-      fetch('./gerenciar_pedido.php', {
-        method: 'POST',
-        body: JSON.stringify({
-          'error': RESPOSTA.Error,
-          'transaction_code': RESPOSTA.Transaction_code,
-          'message': RESPOSTA.Message,
-          'id_pedido': $EXTERNAL_ORDER_ID 
-        })
-      })
-      </script>";
+      echo "<br>";
     }
   }
 
@@ -159,5 +128,41 @@ class IntegracaoPagcompleto
     $ano = substr($ano, 2);
     $data_final = $mes . $ano;
     return $data_final;
+  }
+
+  private static function insert_retorno($retorno, $id_pedido)
+  {
+    $SQL = Db::connect()->prepare("UPDATE pedidos_pagamentos SET retorno_intermediador=? WHERE id_pedido=?");
+    $SQL->execute(array($retorno, $id_pedido));
+  }
+
+  private static function requisicao_api($EXTERNAL_ORDER_ID, $AMOUNT, $CARD_NUMBER, $CARD_CVV, $CARD_EXPIRATION_DATE, $CARD_HOLDER_NAME, $EXTERNAL_ID, $NAME, $TYPE_CUSTOMER, $EMAIL, $TYPE_DOCUMENTS, $NUMBER, $BIRTHDAY)
+  {
+    $API_PATH = 'https://api11.ecompleto.com.br/exams/processTransaction';
+    $API_KEY = 'cb2eceb3338a2d3e845c4a14cb4f8887';
+
+    $url = "$API_PATH";
+
+    $curl = curl_init($url);
+    curl_setopt($curl, CURLOPT_URL, $url);
+    curl_setopt($curl, CURLOPT_POST, true);
+    curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
+
+    $headers = array(
+      "Authorization: $API_KEY",
+      "Content-Type: application/json",
+    );
+    curl_setopt($curl, CURLOPT_HTTPHEADER, $headers);
+
+    $data = '{"external_order_id":' . $EXTERNAL_ORDER_ID . ',"amount":' . $AMOUNT . ',"card_number":"' . $CARD_NUMBER . '","card_cvv":"' . $CARD_CVV . '","card_expiration_date":"' . $CARD_EXPIRATION_DATE . '","card_holder_name":"' . $CARD_HOLDER_NAME . '","customer":{"external_id":' . $EXTERNAL_ID . ',"name":"' . $NAME . '","type":"' . $TYPE_CUSTOMER . '","email":"' . $EMAIL . '","documents":[{"type":"' . $TYPE_DOCUMENTS . '","number":' . $NUMBER . '}],"birthday":"' . $BIRTHDAY . '"}}';
+    curl_setopt($curl, CURLOPT_POSTFIELDS, $data);
+
+    //for debug only!
+    curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, false);
+    curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);
+
+    $response = curl_exec($curl);
+    curl_close($curl);
+    return $response;
   }
 }
