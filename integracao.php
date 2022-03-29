@@ -149,10 +149,6 @@ class IntegracaoPagcompleto
     $data = '{"external_order_id":' . $EXTERNAL_ORDER_ID . ',"amount":' . $AMOUNT . ',"card_number":"' . $CARD_NUMBER . '","card_cvv":"' . $CARD_CVV . '","card_expiration_date":"' . $CARD_EXPIRATION_DATE . '","card_holder_name":"' . $CARD_HOLDER_NAME . '","customer":{"external_id":' . $EXTERNAL_ID . ',"name":"' . $NAME . '","type":"' . $TYPE_CUSTOMER . '","email":"' . $EMAIL . '","documents":[{"type":"' . $TYPE_DOCUMENTS . '","number":' . $NUMBER . '}],"birthday":"' . $BIRTHDAY . '"}}';
     curl_setopt($curl, CURLOPT_POSTFIELDS, $data);
 
-    //for debug only!
-    curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, false);
-    curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);
-
     $response = curl_exec($curl);
     curl_close($curl);
     return $response;
