@@ -165,4 +165,15 @@ class IntegracaoPagcompleto
     curl_close($curl);
     return $response;
   }
+
+  private static function cancelar_pedidos_recusados($retorno, $id_pedido)
+  {
+    $retorno = json_decode($retorno);
+    $retorno_code = $retorno->Transaction_code;
+    if ($retorno_code == '04') {
+      echo "Foi";
+      $SQL = Db::connect()->prepare("UPDATE pedidos SET id_situacao=3 WHERE id=?");
+      $SQL->execute(array($id_pedido));
+    }
+  }
 }
