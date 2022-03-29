@@ -45,12 +45,9 @@ class IntegracaoPagcompleto
       $API_PATH = 'https://api11.ecompleto.com.br/exams/processTransaction';
       $API_KEY = 'cb2eceb3338a2d3e845c4a14cb4f8887';
 
-      echo "<script>";
-      if ($key == 0) {
-        echo "const HEADERS = new Headers({'Authorization': '$API_KEY'});";
-      }
-      echo "
-      const BODY = {
+      echo "<script>
+      var HEADERS = new Headers({'Authorization': '$API_KEY'});;
+      var BODY = {
         'external_order_id': $EXTERNAL_ORDER_ID,
         'amount': $AMOUNT,
         'card_number': '$CARD_NUMBER',
@@ -71,12 +68,28 @@ class IntegracaoPagcompleto
       }
 
       console.log(JSON.stringify(BODY));
-
-      fetch('$API_PATH', {
+      /*
+      var RESPOSTA = fetch('$API_PATH', {
         method: 'POST',
         headers: HEADERS,
         body: JSON.stringify(BODY)
-      }).then(response => console.log(response));
+      }).then(response => response);
+      */
+
+      var RESPOSTA = {};
+      RESPOSTA.Error = false;
+      RESPOSTA.Transaction_code = 04;
+      RESPOSTA.Message = 'Pagamento Recusado. Cartão sem crédito disponível.'
+      
+      fetch('./gerenciar_pedido.php', {
+        method: 'POST',
+        body: JSON.stringify({
+          'error': RESPOSTA.Error,
+          'transaction_code': RESPOSTA.Transaction_code,
+          'message': RESPOSTA.Message,
+          'id_pedido': $EXTERNAL_ORDER_ID 
+        })
+      })
       </script>";
     }
   }
