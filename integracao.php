@@ -119,7 +119,6 @@ class IntegracaoPagcompleto
     $SQL = Db::connect()->prepare("SELECT * FROM clientes where id=?");
     $SQL->execute(array($cliente_id));
     $CLIENTE_INFO = $SQL->fetch();
-    print_r($CLIENTE_INFO);
     return $CLIENTE_INFO;
   }
 }
